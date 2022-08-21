@@ -1,0 +1,219 @@
+##
+#	이 프로그램은 페인트 프로그램을 구현한다. 
+#
+from tkinter import *
+from tkinter.colorchooser import askcolor
+
+DEFAULT_PEN_SIZE = 1.0
+DEFAULT_COLOR = "black"
+start_x = None
+start_y = None
+tool_option = 'paint'
+
+line_start_x = None
+line_start_y = None
+
+circle_start_x = None
+circle_start_y = None
+
+Rectangle_start_x = None
+Rectangle_start_y = None
+
+Line_objects = []
+Circle_objects = []
+Point_objects = []
+Rectangle_objects = []
+stack = []    
+mycolor = DEFAULT_COLOR
+erase_on = False
+
+def choose_color():	# 색상 버튼이 선택되면 사용자한테 색상을 요구한다. 
+    global mycolor
+    mycolor = askcolor(color=mycolor)[1]
+
+def use_eraser():	# 지우개 버튼이 선택되면 모드를 ”erase"으로 바꾼다. 
+    global tool_option
+    #tool_option = "erase"
+    #linelabel["text"] = tool_option  
+
+def paint(event):	# 이전 점과 현재 점 사이를 직선으로 연결한다. 
+    global var, erase_on, start_x, start_y
+
+    if   start_x and start_y:
+        stack.append(canvas.create_line(start_x, start_y, event.x, event.y,
+                           capstyle=ROUND, width=var.get(), fill=mycolor))
+    start_x = event.x
+    start_y = event.y
+
+def erase_paint(event):	# 이전 점과 현재 점 사이를 직선으로 연결한다. 
+    global var, erase_on, start_x, start_y
+    if   start_x and start_y:
+        canvas.create_line(start_x, start_y, event.x, event.y,capstyle=ROUND, width=var.get(), fill='white')
+    start_x = event.x
+    start_y = event.y
+
+def reset(event):	# 사용자가 마우스 버튼에서 손을 떼면 이전 점을 삭제한다. 
+    global start_x, start_y
+    start_x, start_y = None, None
+
+def clear_all():	# 캔버스에 그려진 모든 그림을 삭제한다. 
+    canvas.delete('all')
+    stack.clear()
+def paint_start(event):
+        start_x=event.x
+        start_y=event.y
+def paint_motion(event):
+        x = paint(event)
+        stack.append(x)
+def paint_end(event):
+        reset(event)
+
+def erase_motion(event):
+        erase_paint(event)
+
+def line_start(event):
+        start_x=event.x
+        start_y=event.y
+def line_motion(event):
+        canvas.delete('temp_line_objects')
+        canvas.create_line(start_x,start_y,event.x,event.y,fill=mycolor,smooth=1,tags='temp_line_objects')
+def line_end(event):
+        x=canvas.create_line(start_x,start_y,event.x,event.y,fill=mycolor,smooth=1)
+        Line_objects.append(x)
+        stack.append(x)
+
+def circle_start(event):
+        circle_start_x = event.x
+        circle_start_y = event.y
+def circle_motion(event):
+        canvas.delete('temp_circle_objects')
+        canvas.create_oval((circle_start_x),(circle_start_y),event.x,event.y,fill=mycolor,tags='temp_circle_objects')
+def circle_end(event):
+        x=canvas.create_oval((circle_start_x),(circle_start_y),event.x,event.y,fill=mycolor)
+        Circle_objects.append(x)
+        stack.append(x)
+
+def Rectangle_start(event):
+        start_x = event.x
+        start_y = event.y
+def Rectangle_motion(event):
+        canvas.delete('temp_Rectangle_objects')
+        canvas.create_rectangle((start_x),(start_y),event.x,event.y,fill=mycolor,tags='temp_Rectangle_objects')
+def Rectangle_end(event):
+        x=canvas.create_rectangle((start_x),(start_y),event.x,event.y,fill=mycolor)
+        Rectangle_objects.append(x)
+        stack.append(x)
+
+def use_revert():
+    if len(stack) != 0 :
+        x = stack.pop()
+        canvas.delete(x)
+
+
+def draw_start(event):
+    if tool_option=='line':
+        line_start(event)
+    elif tool_option == 'circle':
+        circle_start(event)
+    elif tool_option=='Rectangle':
+        Rectangle_start(event)
+    elif tool_option=='paint' or 'erase':
+        paint_start(event)
+
+def draw_motion(event):
+    if tool_option=='line':
+        line_motion(event)
+    elif tool_option == 'circle':
+        circle_motion(event)
+    elif tool_option=='paint':
+        paint_motion(event)
+    elif tool_option=='erase':
+        erase_motion(event)
+    elif tool_option == 'Rectangle':
+        Rectangle_motion(event)
+
+def draw_end(event):
+    if tool_option == 'line':
+        line_end(event)
+    elif tool_option == 'circle':
+        circle_end(event)
+    elif tool_option == 'Rectangle':
+        Rectangle_end(event)
+    elif tool_option=='paint' or 'erase':
+        paint_end(event)
+
+def set_tool_paint():
+    tool_option = 'paint'
+    linelabel["text"] = tool_option
+
+def set_tool_line():
+    tool_option = 'line'
+    linelabel["text"] = tool_option
+
+def set_tool_circle():
+    tool_option = 'circle'
+    linelabel["text"] = tool_option
+
+def set_tool_Polygon():
+    tool_option = 'Polygon'
+    linelabel["text"] = tool_option
+
+def set_tool_Rectangle():
+    tool_option = 'Rectangle'
+    linelabel["text"] = tool_option
+
+def set_tool_erase():
+    global erase_on
+    tool_option = 'erase'
+    if erase_on == False:
+        erase_on = True
+    else :
+        erase_on = False
+    linelabel["text"] = tool_option
+
+window = Tk()	
+window.title("그림판")
+var = DoubleVar()	# 슬라이더와 연결될 객체를 생성한다. 
+
+penButton = Button(window, text='펜', command=set_tool_paint)
+penButton.grid(row=0, column=0, sticky=W+E)
+
+colorButton = Button(window, text='색상선택', command=choose_color)
+colorButton.grid(row=0, column=1, sticky=W+E)
+
+eraseButton = Button(window, text='지우개', command=set_tool_erase)
+eraseButton.grid(row=0, column=2, sticky=W+E)
+
+clearButton = Button(window, text='모두삭제', command=clear_all)
+clearButton.grid(row=0, column=3, sticky=W+E)
+
+OvalButton = Button(window, text = '원 그리기', command = set_tool_circle)
+OvalButton.grid(row = 1, column = 0)
+
+RectangleButton = Button(window, text = '사각형 그리기', command = set_tool_Rectangle)
+RectangleButton.grid(row = 1, column = 1)
+
+polygonButton = Button(window, text = '오각형 그리기', command = set_tool_Polygon)
+polygonButton.grid(row = 1, column = 2)
+
+lineButton = Button(window, text = '직선 그리기', command = set_tool_line)
+lineButton.grid(row = 1, column = 3)
+
+revertButton = Button(window, text = '되돌리기', command = use_revert)
+revertButton.grid(row = 1, column = 4)
+
+linelabel = Label(window, text = "paint",bg = 'white')
+linelabel.grid(row = 0,column=4,sticky=W+E)
+
+scale = Scale(window, variable=var, orient=VERTICAL)
+scale.grid(row=2, column=5, sticky=N+S)
+
+canvas = Canvas(window, bg='white', width=1000, height=800)
+canvas.grid(row=2, columnspan=5)
+
+
+canvas.bind('<Button-1>',draw_start)
+canvas.bind('<B1-Motion>',draw_motion)
+canvas.bind('<ButtonRelease-1>',draw_end)
+window.mainloop()
+
