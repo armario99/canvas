@@ -1,0 +1,195 @@
+##
+#	이 프로그램은 페인트 프로그램을 구현한다. 
+#
+from tkinter import *
+from tkinter.colorchooser import askcolor
+#기본 설정
+DEFAULT_PEN_SIZE = 1.0 #기본 펜 사이즈 "1.0"
+DEFAULT_COLOR = "black"#기본 색 설정 "검정"
+
+mode = "paint"  #초기 그림모드 설정
+#선의 시작 위치
+start_x = None
+start_y = None
+
+mycolor = DEFAULT_COLOR #사용 색 설정
+erase_on = False
+collection = [] #stack
+check_item = [] #되돌리기 기능을 사용하기 위해 이전 상태를 저장
+
+def use_pen():		# 펜 버튼이 선택되면 모드를 ”paint"으로 바꾼다. 
+    global mode
+    mode = "paint"
+    linelabel["text"] = mode      
+
+def use_eraser():	# 지우개 버튼이 선택되면 모드를 ”erase"으로 바꾼다. 
+    global mode
+    mode = "erase"
+    linelabel["text"] = mode  
+
+def choose_color():	# 색상 버튼이 선택되면 사용자한테 색상을 요구한다. 
+    global mycolor
+    mycolor = askcolor(color=mycolor)[1]
+
+def use_oval():	# 원그리기 버튼이 선택되면 모드를 ”circle"으로 바꾼다. 
+    global mode
+    mode = "circle"
+    linelabel["text"] = mode  
+
+def use_Rectangle():	# 사각형 그리기 버튼이 선택되면 모드를 Rectangle"으로 바꾼다. 
+    global mode
+    mode = "Rectangle"
+    linelabel["text"] = mode 
+
+def use_line():	# 직선 그리기 버튼이 선택되면 모드를 ”line"으로 바꾼다. 
+    global mode
+    mode = "line"
+    linelabel["text"] = mode  
+
+def use_Polygon():	# 오각형 버튼이 선택되면 모드를 ”Polygon"으로 바꾼다. 
+    global mode
+    mode = "Polygon"
+    linelabel["text"] = mode  
+
+def paint(event):	# 이전 점과 현재 점 사이를 직선으로 연결한다. 
+    global var, erase_on, mode, start_x, start_y
+    fill_color = 'white' if   mode == "erase" else mycolor
+    if   start_x and start_y:
+        collection.append(canvas.create_line(start_x, start_y, event.x, event.y,
+                           capstyle=ROUND, width=var.get(), fill=fill_color))
+    start_x = event.x
+    start_y = event.y
+
+def reset(event):	# 사용자가 마우스 버튼에서 손을 떼면 이전 점을 삭제한다. 
+    global start_x, start_y
+    start_x, start_y = None, None
+
+def clear_all():	# 캔버스에 그려진 모든 그림을 삭제한다. 
+    global cansvas
+    canvas.delete('all')
+    collection.clear()
+#마우스 왼쪽 버튼을 누른 상태를 유지하면서 움직이면 동작하는 함수 그림을 그린다.  
+def Rectangle_motion(event):
+    canvas.delete('temp_Rectangle_objects')
+    canvas.create_rectangle(start_x, start_y, event.x, event.y, outline = mycolor,width=var.get(),tags='temp_Rectangle_objects')
+
+def circle_motion(event):
+    canvas.delete('temp_circle_objects')
+    canvas.create_oval(start_x, start_y, event.x, event.y, outline = mycolor,width=var.get(),tags='temp_circle_objects')
+
+def line_motion(event):
+    canvas.delete('temp_line_objects')
+    canvas.create_line(start_x, start_y, event.x, event.y, fill = mycolor,width=var.get(),tags='temp_line_objects')
+
+def paint_motion(event):
+        x = paint(event)
+        collection.append(x)
+
+#마우스 왼쪽 버튼을 떼면 동작하는 함수 현재 그림을 저장한다.
+def Rectangle_end(event):
+    collection.append(canvas.create_rectangle(start_x, start_y, event.x, event.y, outline = mycolor,width=var.get()))
+
+def circle_end(event):
+    collection.append(canvas.create_oval(start_x, start_y, event.x, event.y, outline = mycolor,width=var.get()))
+    
+def line_end(event):
+    collection.append(canvas.create_line(start_x, start_y, event.x, event.y, fill = mycolor,width=var.get()))
+
+def paint_end(event):
+        reset(event)
+
+def check_stack(): #현재의 상태를 저장
+    global check_item
+    check_item.append(len(collection))
+
+
+def use_revert(): #되돌리기 기능 함수1
+    global collection
+    if len(collection) != 0 :
+        x = collection.pop()
+        canvas.delete(x)
+ 
+def use_revert2(): #되돌리기 기능 함수2
+    global collection,check_item
+    if len(collection) != 0 and len(check_item) != 0 :
+        itemnum = check_item.pop()
+        y= int(len(collection) - int(itemnum))
+        print(check_item)
+        for num in range(y):
+            x = collection.pop()
+            canvas.delete(x)     
+
+def draw_start(event): #그림 시작 위치와 현재 상태를 저장한다.
+    global start_x, start_y
+    check_stack()
+    start_x = event.x
+    start_y = event.y
+
+def draw_motion(event): #현재 모드에 따라 그림을 그린다.
+    if mode == 'paint' or mode == 'erase':
+        paint_motion(event)
+    elif mode == 'circle':
+        circle_motion(event)
+    elif mode == 'Rectangle':
+        Rectangle_motion(event)
+    elif mode == 'line':
+        line_motion(event)
+    else :
+        paint_motion(event)
+
+def draw_end(event): #현재 그림을 저장한다.
+    if mode == 'paint' or mode == 'erase':
+        paint_end(event)
+    elif mode == 'circle':
+        circle_end(event)
+    elif mode == 'Rectangle':
+        Rectangle_end(event)
+    elif mode == 'line':
+        line_end(event)
+    else :
+        paint_end(event)
+        
+window = Tk()	
+window.title("그림판")
+var = DoubleVar()	# 슬라이더와 연결될 객체를 생성한다. 
+
+penButton = Button(window, text='펜', command=use_pen)
+penButton.grid(row=0, column=0, sticky=W+E)
+
+colorButton = Button(window, text='색상선택', command=choose_color)
+colorButton.grid(row=0, column=1, sticky=W+E)
+
+eraseButton = Button(window, text='지우개', command=use_eraser)
+eraseButton.grid(row=0, column=2, sticky=W+E)
+
+clearButton = Button(window, text='모두삭제', command=clear_all)
+clearButton.grid(row=0, column=3, sticky=W+E)
+
+OvalButton = Button(window, text = '원 그리기', command = use_oval)
+OvalButton.grid(row = 1, column = 0)
+
+RectangleButton = Button(window, text = '사각형 그리기', command = use_Rectangle)
+RectangleButton.grid(row = 1, column = 1)
+
+polygonButton = Button(window, text = '오각형 그리기', command = use_Polygon) #오각형 그리기 기능은 현재 미완성
+polygonButton.grid(row = 1, column = 2)
+
+polygonButton = Button(window, text = '직선 그리기', command = use_line)
+polygonButton.grid(row = 1, column = 3)
+
+revertButton = Button(window, text = '되돌리기', command = use_revert2)
+revertButton.grid(row = 1, column = 4)
+
+linelabel = Label(window, text = "paint",bg = 'white')
+linelabel.grid(row = 0,column=4,sticky=W+E)
+
+scale = Scale(window, variable=var, orient=VERTICAL)
+scale.grid(row=2, column=5, sticky=N+S)
+
+canvas = Canvas(window, bg='white', width=1000, height=800)
+canvas.grid(row=2, columnspan=5)
+
+canvas.bind('<Button-1>',draw_start)
+canvas.bind('<B1-Motion>', draw_motion)
+canvas.bind('<ButtonRelease-1>',draw_end)
+window.mainloop()
